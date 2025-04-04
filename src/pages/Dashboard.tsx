@@ -96,7 +96,7 @@ const Dashboard = () => {
 
       // Create profile object
       const profileData: Profile = {
-        id: settingsData?.id || '',
+        id: user.id, // Use user.id instead of settingsData.id
         userId: user.id,
         theme: settingsData?.theme || 'purple',
         backgroundColor: settingsData?.background_color || undefined,
