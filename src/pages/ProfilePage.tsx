@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,26 +5,17 @@ import ProfileHeader from '@/components/profile/ProfileHeader';
 import LinkButton from '@/components/profile/LinkButton';
 import SocialLinks from '@/components/profile/SocialLinks';
 import { User, Link, Profile } from '@/types';
-import { 
-  getProfileByUsername, themes, fontStyles, recordProfileVisit
-} from '@/services/mockDataService';
+import { themes, fontStyles } from '@/services/mockDataService';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
-
-// Mock user for demo purposes
-const mockUser: User = {
-  id: '1',
-  username: 'demo',
-  email: 'demo@example.com',
-  displayName: 'Demo User',
-  bio: 'This is a demo profile page. Customize your own page by signing up!',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
+import { useProfileData } from '@/hooks/useProfileData';
+import { useLinkData } from '@/hooks/useLinkData';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
   const { toast } = useToast();
+  const { fetchProfileByUsername, isLoading: profileLoading } = useProfileData();
   
   const [user, setUser] = useState<User | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
@@ -33,23 +23,27 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default purple
 
+  const { fetchLinks: fetchUserLinks, recordLinkClick } = useLinkData(user?.id);
+
   useEffect(() => {
     const loadProfile = async () => {
       setIsLoading(true);
       try {
-        // In a real app, this would fetch the user profile from an API
-        // For demo purposes, we're using mockUser and our mock data service
-        
         if (username) {
-          // Record a profile visit
-          recordProfileVisit('1');
-          
-          // Get profile data
-          const profileData = getProfileByUsername(username);
+          const profileData = await fetchProfileByUsername(username);
           
           if (profileData) {
-            setUser(mockUser);
-            setLinks(profileData.links);
+            setUser({
+              id: profileData.userData.id,
+              username: profileData.userData.username,
+              email: '', // We don't expose email publicly
+              displayName: profileData.userData.displayName,
+              bio: profileData.userData.bio,
+              profileImage: profileData.userData.profileImage,
+              createdAt: profileData.userData.createdAt,
+              updatedAt: profileData.userData.updatedAt
+            });
+            
             setProfile(profileData.profile);
             
             // Set theme color
@@ -57,6 +51,29 @@ const ProfilePage = () => {
             if (selectedTheme) {
               setThemeColor(selectedTheme.primaryColor);
             }
+            
+            // Now fetch the user's links
+            const { data, error } = await supabase
+              .from('links')
+              .select('*')
+              .eq('user_id', profileData.userData.id)
+              .order('order_number', { ascending: true });
+            
+            if (error) throw error;
+            
+            // Format links from database format to our app format
+            const formattedLinks = data.map(link => ({
+              id: link.id,
+              userId: link.user_id,
+              title: link.title,
+              url: link.url,
+              order: link.order_number,
+              clicks: link.clicks,
+              createdAt: link.created_at,
+              updatedAt: link.updated_at
+            }));
+            
+            setLinks(formattedLinks);
           } else {
             toast({
               title: 'Profile not found',
@@ -78,7 +95,11 @@ const ProfilePage = () => {
     };
 
     loadProfile();
-  }, [username, toast]);
+  }, [username, toast, fetchProfileByUsername]);
+
+  const handleLinkClick = (linkId: string) => {
+    recordLinkClick(linkId);
+  };
 
   if (isLoading) {
     return (
@@ -137,6 +158,7 @@ const ProfilePage = () => {
               userId={user.id}
               buttonStyle={profile.buttonStyle}
               themeColor={themeColor}
+              onLinkClick={() => handleLinkClick(link.id)}
             />
           ))}
         </div>

@@ -3,20 +3,22 @@ import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { Link } from '@/types';
 import { buttonStyles } from '@/services/mockDataService';
-import { recordLinkClick } from '@/services/mockDataService';
 
 interface LinkButtonProps {
   link: Link;
   userId: string;
   buttonStyle: string;
   themeColor: string;
+  onLinkClick?: (linkId: string) => void;
 }
 
-const LinkButton: React.FC<LinkButtonProps> = ({ link, userId, buttonStyle, themeColor }) => {
+const LinkButton: React.FC<LinkButtonProps> = ({ link, userId, buttonStyle, themeColor, onLinkClick }) => {
   const buttonStyleConfig = buttonStyles.find((style) => style.id === buttonStyle) || buttonStyles[0];
 
   const handleClick = () => {
-    recordLinkClick(userId, link.id);
+    if (onLinkClick) {
+      onLinkClick(link.id);
+    }
     window.open(link.url, '_blank', 'noopener,noreferrer');
   };
 

@@ -51,12 +51,7 @@ const RegisterForm = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to register. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
+      // Error is already handled in the auth context
       setIsLoading(false);
     }
   };

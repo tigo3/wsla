@@ -12,24 +12,36 @@ import ThemeSelector from '@/components/dashboard/ThemeSelector';
 import ButtonStyleSelector from '@/components/dashboard/ButtonStyleSelector';
 import FontStyleSelector from '@/components/dashboard/FontStyleSelector';
 import { Link, Profile } from '@/types';
-import { 
-  getLinks, addLink, updateLink, deleteLink, reorderLinks,
-  getProfile, updateProfile, themes,
-  initializeMockData
-} from '@/services/mockDataService';
+import { themes } from '@/services/mockDataService';
 import { useToast } from '@/hooks/use-toast';
 import { Plus } from 'lucide-react';
+import { useLinkData } from '@/hooks/useLinkData';
+import { useProfileData } from '@/hooks/useProfileData';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [links, setLinks] = useState<Link[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAddLinkDialogOpen, setIsAddLinkDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('links');
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default color
+
+  const {
+    links,
+    isLoading: linksLoading,
+    fetchLinks,
+    addLink,
+    updateLink,
+    deleteLink,
+    reorderLinks
+  } = useLinkData(user?.id);
+
+  const {
+    updateProfileSettings
+  } = useProfileData();
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -38,11 +50,11 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Initialize data and load user content
+  // Load user content
   useEffect(() => {
     if (user) {
-      initializeMockData(user.id);
-      loadUserContent();
+      fetchUserData();
+      fetchLinks();
     }
   }, [user]);
 
@@ -56,92 +68,160 @@ const Dashboard = () => {
     }
   }, [profile]);
 
-  const loadUserContent = () => {
-    if (user) {
-      const userLinks = getLinks(user.id);
-      const userProfile = getProfile(user.id);
-      
-      setLinks(userLinks);
-      setProfile(userProfile);
-    }
-  };
+  const fetchUserData = async () => {
+    if (!user) return;
 
-  const handleAddLink = (data: { title: string; url: string }) => {
-    if (user) {
-      const newLink = addLink(user.id, data.title, data.url);
-      setLinks([...links, newLink]);
-      setIsAddLinkDialogOpen(false);
-    }
-  };
-
-  const handleUpdateLink = (linkId: string, data: { title: string; url: string }) => {
     try {
-      const updatedLink = updateLink(linkId, data);
-      setLinks(links.map(link => link.id === linkId ? updatedLink : link));
+      // Get profile settings
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('profile_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (settingsError) throw settingsError;
+
+      // Get social links
+      const { data: socialData, error: socialError } = await supabase
+        .from('social_links')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (socialError) throw socialError;
+
+      const socialLinks = socialData.map(link => ({
+        platform: link.platform,
+        url: link.url
+      }));
+
+      // Create profile object
+      const profileData: Profile = {
+        id: settingsData.id,
+        userId: user.id,
+        theme: settingsData.theme,
+        backgroundColor: settingsData.background_color || undefined,
+        backgroundImage: settingsData.background_image || undefined,
+        buttonStyle: settingsData.button_style,
+        fontStyle: settingsData.font_style,
+        socialLinks: socialLinks,
+        createdAt: settingsData.created_at,
+        updatedAt: settingsData.updated_at
+      };
+
+      setProfile(profileData);
     } catch (error) {
+      console.error('Error fetching user data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update link',
+        description: 'Failed to load your profile settings',
         variant: 'destructive',
       });
     }
   };
 
-  const handleDeleteLink = (linkId: string) => {
-    try {
-      deleteLink(linkId);
-      setLinks(links.filter(link => link.id !== linkId));
-      toast({
-        title: 'Success',
-        description: 'Link deleted successfully',
-      });
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete link',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleThemeChange = (themeId: string) => {
-    if (user && profile) {
-      const updatedProfile = updateProfile(user.id, { theme: themeId });
-      setProfile(updatedProfile);
-      
-      const selectedTheme = themes.find(t => t.id === themeId);
-      if (selectedTheme) {
-        setThemeColor(selectedTheme.primaryColor);
+  const handleAddLink = async (data: { title: string; url: string }) => {
+    if (user) {
+      const newLink = await addLink(data.title, data.url);
+      if (newLink) {
+        setIsAddLinkDialogOpen(false);
+        toast({
+          title: 'Link Added',
+          description: 'Your link has been added successfully',
+        });
       }
-      
-      toast({
-        title: 'Theme updated',
-        description: 'Your profile theme has been updated',
-      });
     }
   };
 
-  const handleButtonStyleChange = (styleId: string) => {
-    if (user && profile) {
-      const updatedProfile = updateProfile(user.id, { buttonStyle: styleId });
-      setProfile(updatedProfile);
-      
-      toast({
-        title: 'Button style updated',
-        description: 'Your profile button style has been updated',
-      });
+  const handleUpdateLink = async (linkId: string, data: { title: string; url: string }) => {
+    try {
+      const success = await updateLink(linkId, data);
+      if (success) {
+        toast({
+          title: 'Link Updated',
+          description: 'Your link has been updated successfully',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating link:', error);
+      // Toast already shown in the hook
     }
   };
 
-  const handleFontStyleChange = (fontId: string) => {
+  const handleDeleteLink = async (linkId: string) => {
+    try {
+      const success = await deleteLink(linkId);
+      if (success) {
+        toast({
+          title: 'Success',
+          description: 'Link deleted successfully',
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting link:', error);
+      // Toast already shown in the hook
+    }
+  };
+
+  const handleThemeChange = async (themeId: string) => {
     if (user && profile) {
-      const updatedProfile = updateProfile(user.id, { fontStyle: fontId });
-      setProfile(updatedProfile);
+      const success = await updateProfileSettings(user.id, { theme: themeId });
       
-      toast({
-        title: 'Font style updated',
-        description: 'Your profile font style has been updated',
-      });
+      if (success) {
+        // Update local state
+        setProfile({
+          ...profile,
+          theme: themeId
+        });
+        
+        // Update theme color
+        const selectedTheme = themes.find(t => t.id === themeId);
+        if (selectedTheme) {
+          setThemeColor(selectedTheme.primaryColor);
+        }
+        
+        toast({
+          title: 'Theme updated',
+          description: 'Your profile theme has been updated',
+        });
+      }
+    }
+  };
+
+  const handleButtonStyleChange = async (styleId: string) => {
+    if (user && profile) {
+      const success = await updateProfileSettings(user.id, { buttonStyle: styleId });
+      
+      if (success) {
+        // Update local state
+        setProfile({
+          ...profile,
+          buttonStyle: styleId
+        });
+        
+        toast({
+          title: 'Button style updated',
+          description: 'Your profile button style has been updated',
+        });
+      }
+    }
+  };
+
+  const handleFontStyleChange = async (fontId: string) => {
+    if (user && profile) {
+      const success = await updateProfileSettings(user.id, { fontStyle: fontId });
+      
+      if (success) {
+        // Update local state
+        setProfile({
+          ...profile,
+          fontStyle: fontId
+        });
+        
+        toast({
+          title: 'Font style updated',
+          description: 'Your profile font style has been updated',
+        });
+      }
     }
   };
 

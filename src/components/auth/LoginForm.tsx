@@ -40,12 +40,7 @@ const LoginForm = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to log in. Please check your credentials.',
-        variant: 'destructive',
-      });
-    } finally {
+      // Error is already handled in the auth context
       setIsLoading(false);
     }
   };
