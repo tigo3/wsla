@@ -1,8 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { loginUser, logoutUser, registerUser } from '@/services/supabaseService';
 
 // Extended user type that includes Supabase user fields and our custom fields
 interface User {
@@ -125,14 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        throw error;
-      }
+      await loginUser(email, password);
+      // Auth state listener will handle setting the user
     } catch (error) {
       console.error('Login failed:', error);
       toast({
@@ -149,23 +144,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (email: string, username: string, password: string) => {
     setIsLoading(true);
     try {
-      // First register the user with Supabase Auth
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-          },
-        }
-      });
-      
-      if (signUpError) {
-        throw signUpError;
-      }
-      
+      await registerUser(email, username, password);
+      // Auth state listener will handle setting the user
       // Note: The profile will be created automatically via database trigger
-      
     } catch (error) {
       console.error('Registration failed:', error);
       toast({
@@ -182,10 +163,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
-      }
+      await logoutUser();
+      // Auth state listener will handle clearing the user
     } catch (error) {
       console.error('Logout failed:', error);
       toast({
@@ -215,6 +194,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id);
 
       if (error) throw error;
+
+      // Update local state if successful
+      setUser(prevUser => {
+        if (!prevUser) return null;
+        return {
+          ...prevUser,
+          username: userData.username || prevUser.username,
+          displayName: userData.displayName || prevUser.displayName,
+          bio: userData.bio || prevUser.bio,
+          profileImage: userData.profileImage || prevUser.profileImage,
+          updatedAt: new Date().toISOString()
+        };
+      });
 
       toast({
         title: 'Profile Updated',

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import LinkButton from '@/components/profile/LinkButton';
@@ -10,11 +10,11 @@ import { themes, fontStyles } from '@/services/mockDataService';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import { useProfileData } from '@/hooks/useProfileData';
-import { useLinkData } from '@/hooks/useLinkData';
-import { supabase } from '@/integrations/supabase/client';
+import { recordLinkClick } from '@/services/supabaseService';
 
 const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { fetchProfileByUsername, isLoading: profileLoading } = useProfileData();
   
@@ -24,68 +24,39 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default purple
 
-  const { fetchLinks: fetchUserLinks, recordLinkClick } = useLinkData(user?.id);
-
   useEffect(() => {
     const loadProfile = async () => {
       setIsLoading(true);
+      
+      if (!username) {
+        toast({
+          title: 'Error',
+          description: 'No username provided',
+          variant: 'destructive',
+        });
+        navigate('/');
+        return;
+      }
+      
       try {
-        if (username) {
-          const profileData = await fetchProfileByUsername(username);
+        const profileData = await fetchProfileByUsername(username);
+        
+        if (profileData) {
+          setUser(profileData.userData);
+          setProfile(profileData.profile);
+          setLinks(profileData.links);
           
-          if (profileData) {
-            setUser({
-              id: profileData.userData.id,
-              username: profileData.userData.username,
-              email: '', // We don't expose email publicly
-              displayName: profileData.userData.displayName,
-              bio: profileData.userData.bio,
-              profileImage: profileData.userData.profileImage,
-              createdAt: profileData.userData.createdAt,
-              updatedAt: profileData.userData.updatedAt
-            });
-            
-            setProfile(profileData.profile);
-            
-            // Set theme color
-            const selectedTheme = themes.find(t => t.id === profileData.profile.theme);
-            if (selectedTheme) {
-              setThemeColor(selectedTheme.primaryColor);
-            }
-            
-            // Now fetch the user's links
-            if (profileData.userData.id) {
-              const { data, error } = await supabase
-                .from('links')
-                .select('*')
-                .eq('user_id', profileData.userData.id)
-                .order('order_number', { ascending: true });
-              
-              if (error) throw error;
-              
-              // Format links from database format to our app format
-              if (data) {
-                const formattedLinks = data.map(link => ({
-                  id: link.id,
-                  userId: link.user_id,
-                  title: link.title,
-                  url: link.url,
-                  order: link.order_number,
-                  clicks: link.clicks,
-                  createdAt: link.created_at,
-                  updatedAt: link.updated_at
-                }));
-                
-                setLinks(formattedLinks);
-              }
-            }
-          } else {
-            toast({
-              title: 'Profile not found',
-              description: `No profile found for username: ${username}`,
-              variant: 'destructive',
-            });
+          // Set theme color
+          const selectedTheme = themes.find(t => t.id === profileData.profile.theme);
+          if (selectedTheme) {
+            setThemeColor(selectedTheme.primaryColor);
           }
+        } else {
+          toast({
+            title: 'Profile not found',
+            description: `No profile found for username: ${username}`,
+            variant: 'destructive',
+          });
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -100,10 +71,14 @@ const ProfilePage = () => {
     };
 
     loadProfile();
-  }, [username, toast, fetchProfileByUsername]);
+  }, [username, toast, fetchProfileByUsername, navigate]);
 
-  const handleLinkClick = (linkId: string) => {
-    recordLinkClick(linkId);
+  const handleLinkClick = async (linkId: string) => {
+    try {
+      await recordLinkClick(linkId);
+    } catch (error) {
+      console.error('Error recording link click:', error);
+    }
   };
 
   if (isLoading) {

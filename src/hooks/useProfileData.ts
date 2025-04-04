@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Profile, SocialLink } from '@/types';
+import { getProfileByUsername, updateProfileSettings } from '@/services/supabaseService';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useProfileData() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -12,69 +13,16 @@ export function useProfileData() {
   const fetchProfileByUsername = async (username: string) => {
     setIsLoading(true);
     try {
-      // Fetch the user profile
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username)
-        .single();
-
-      if (profileError) throw profileError;
-
-      // Fetch the user's profile settings
-      const { data: settingsData, error: settingsError } = await supabase
-        .from('profile_settings')
-        .select('*')
-        .eq('user_id', profileData?.id)
-        .single();
-
-      if (settingsError) throw settingsError;
-
-      // Fetch the user's social links
-      const { data: socialData, error: socialError } = await supabase
-        .from('social_links')
-        .select('*')
-        .eq('user_id', profileData?.id);
-
-      if (socialError) throw socialError;
-
-      // Transform the social links data
-      const socialLinks: SocialLink[] = socialData?.map(link => ({
-        platform: link.platform,
-        url: link.url
-      })) || [];
-
-      // Combine all data into a Profile object
-      const fullProfile: Profile = {
-        id: profileData?.id,
-        userId: profileData?.id,
-        theme: settingsData?.theme,
-        backgroundColor: settingsData?.background_color || undefined,
-        backgroundImage: settingsData?.background_image || undefined,
-        buttonStyle: settingsData?.button_style,
-        fontStyle: settingsData?.font_style,
-        socialLinks: socialLinks,
-        createdAt: profileData?.created_at,
-        updatedAt: profileData?.updated_at
-      };
-
-      setProfile(fullProfile);
+      const data = await getProfileByUsername(username);
       
-      // Record a profile visit
-      await recordProfileVisit(profileData?.id);
+      if (data) {
+        setProfile(data.profile);
+        
+        // Record a profile visit
+        await recordProfileVisit(data.userData.id);
+      }
       
-      return {
-        profile: fullProfile,
-        userData: {
-          id: profileData?.id,
-          username: profileData?.username,
-          displayName: profileData?.display_name,
-          bio: profileData?.bio,
-          profileImage: profileData?.profile_image,
-          createdAt: profileData?.created_at,
-          updatedAt: profileData?.updated_at
-        }
-      };
+      return data;
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
@@ -88,7 +36,7 @@ export function useProfileData() {
     }
   };
 
-  const updateProfileSettings = async (
+  const updateProfileSettingsData = async (
     userId: string, 
     settings: { 
       theme?: string; 
@@ -99,22 +47,10 @@ export function useProfileData() {
     }
   ) => {
     try {
-      const { error } = await supabase
-        .from('profile_settings')
-        .update({
-          theme: settings.theme,
-          button_style: settings.buttonStyle,
-          font_style: settings.fontStyle,
-          background_color: settings.backgroundColor,
-          background_image: settings.backgroundImage,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userId);
-
-      if (error) throw error;
+      const success = await updateProfileSettings(userId, settings);
 
       // Update local state if we have it
-      if (profile && profile.userId === userId) {
+      if (success && profile && profile.userId === userId) {
         setProfile({
           ...profile,
           theme: settings.theme || profile.theme,
@@ -126,7 +62,7 @@ export function useProfileData() {
         });
       }
 
-      return true;
+      return success;
     } catch (error) {
       console.error('Error updating profile settings:', error);
       toast({
@@ -202,7 +138,7 @@ export function useProfileData() {
     profile,
     isLoading,
     fetchProfileByUsername,
-    updateProfileSettings,
+    updateProfileSettings: updateProfileSettingsData,
     updateSocialLinks
   };
 }

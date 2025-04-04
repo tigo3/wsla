@@ -1,8 +1,14 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { Link } from '@/types';
+import { 
+  createLink, 
+  deleteLink, 
+  getUserLinks, 
+  recordLinkClick, 
+  updateLink 
+} from '@/services/supabaseService';
 
 export function useLinkData(userId: string | undefined) {
   const [links, setLinks] = useState<Link[]>([]);
@@ -14,27 +20,8 @@ export function useLinkData(userId: string | undefined) {
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('links')
-        .select('*')
-        .eq('user_id', userId)
-        .order('order_number', { ascending: true });
-
-      if (error) throw error;
-
-      // Transform from Supabase format to our app's format
-      const formattedLinks: Link[] = data?.map(link => ({
-        id: link.id,
-        userId: link.user_id,
-        title: link.title,
-        url: link.url,
-        order: link.order_number,
-        clicks: link.clicks,
-        createdAt: link.created_at,
-        updatedAt: link.updated_at
-      })) || [];
-
-      setLinks(formattedLinks);
+      const fetchedLinks = await getUserLinks(userId);
+      setLinks(fetchedLinks);
     } catch (error) {
       console.error('Error fetching links:', error);
       toast({
@@ -51,51 +38,9 @@ export function useLinkData(userId: string | undefined) {
     if (!userId) return null;
     
     try {
-      // Get the highest order number
-      const maxOrderQuery = await supabase
-        .from('links')
-        .select('order_number')
-        .eq('user_id', userId)
-        .order('order_number', { ascending: false })
-        .limit(1);
-
-      if (maxOrderQuery.error) throw maxOrderQuery.error;
-      
-      const nextOrder = maxOrderQuery.data.length > 0 
-        ? (maxOrderQuery.data[0]?.order_number + 1) 
-        : 0;
-
-      const { data, error } = await supabase
-        .from('links')
-        .insert([
-          { 
-            user_id: userId, 
-            title, 
-            url, 
-            order_number: nextOrder 
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        const newLink: Link = {
-          id: data.id,
-          userId: data.user_id,
-          title: data.title,
-          url: data.url,
-          order: data.order_number,
-          clicks: data.clicks,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at
-        };
-
-        setLinks([...links, newLink]);
-        return newLink;
-      }
-      return null;
+      const newLink = await createLink(userId, title, url);
+      setLinks([...links, newLink]);
+      return newLink;
     } catch (error) {
       console.error('Error adding link:', error);
       toast({
@@ -107,28 +52,22 @@ export function useLinkData(userId: string | undefined) {
     }
   };
 
-  const updateLink = async (linkId: string, data: { title?: string; url?: string }) => {
+  const updateLinkData = async (linkId: string, data: { title?: string; url?: string }) => {
+    if (!userId) return false;
+    
     try {
-      const { error } = await supabase
-        .from('links')
-        .update({ 
-          title: data.title,
-          url: data.url,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', linkId)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      // Update local state
-      setLinks(links.map(link => 
-        link.id === linkId 
-          ? { ...link, ...data, updatedAt: new Date().toISOString() } 
-          : link
-      ));
-
-      return true;
+      const success = await updateLink(linkId, userId, data);
+      
+      if (success) {
+        // Update local state
+        setLinks(links.map(link => 
+          link.id === linkId 
+            ? { ...link, ...data, updatedAt: new Date().toISOString() } 
+            : link
+        ));
+      }
+      
+      return success;
     } catch (error) {
       console.error('Error updating link:', error);
       toast({
@@ -140,19 +79,18 @@ export function useLinkData(userId: string | undefined) {
     }
   };
 
-  const deleteLink = async (linkId: string) => {
+  const removeLinkData = async (linkId: string) => {
+    if (!userId) return false;
+    
     try {
-      const { error } = await supabase
-        .from('links')
-        .delete()
-        .eq('id', linkId)
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      // Update local state
-      setLinks(links.filter(link => link.id !== linkId));
-      return true;
+      const success = await deleteLink(linkId, userId);
+      
+      if (success) {
+        // Update local state
+        setLinks(links.filter(link => link.id !== linkId));
+      }
+      
+      return success;
     } catch (error) {
       console.error('Error deleting link:', error);
       toast({
@@ -165,25 +103,19 @@ export function useLinkData(userId: string | undefined) {
   };
 
   const reorderLinks = async (reorderedLinks: Link[]) => {
+    if (!userId) return false;
+    
     try {
       // First update the local state for immediate UI response
       setLinks(reorderedLinks);
 
-      // Prepare the batch updates for Supabase
-      const updates = reorderedLinks.map((link, index) => ({
-        id: link.id,
-        order_number: index
-      }));
-
-      // Update each link with its new order
-      for (const update of updates) {
-        const { error } = await supabase
-          .from('links')
-          .update({ order_number: update.order_number })
-          .eq('id', update.id)
-          .eq('user_id', userId);
-
-        if (error) throw error;
+      // Prepare the batch updates for each link
+      for (let i = 0; i < reorderedLinks.length; i++) {
+        const link = reorderedLinks[i];
+        await updateLink(link.id, userId, { 
+          title: link.title, 
+          url: link.url 
+        });
       }
 
       return true;
@@ -201,14 +133,9 @@ export function useLinkData(userId: string | undefined) {
     }
   };
 
-  const recordLinkClick = async (linkId: string) => {
+  const trackLinkClick = async (linkId: string) => {
     try {
-      // Record the click in the database
-      await supabase
-        .from('link_clicks')
-        .insert([{ link_id: linkId }]);
-        
-      // The increment_link_clicks trigger will automatically update the clicks count
+      await recordLinkClick(linkId);
     } catch (error) {
       console.error('Error recording link click:', error);
       // Don't show a toast error to the user for this operation
@@ -220,9 +147,9 @@ export function useLinkData(userId: string | undefined) {
     isLoading,
     fetchLinks,
     addLink,
-    updateLink,
-    deleteLink,
+    updateLink: updateLinkData,
+    deleteLink: removeLinkData,
     reorderLinks,
-    recordLinkClick
+    recordLinkClick: trackLinkClick
   };
 }
