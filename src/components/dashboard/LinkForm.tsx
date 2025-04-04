@@ -35,7 +35,12 @@ const LinkForm: React.FC<LinkFormProps> = ({ link, onSubmit, onCancel }) => {
   const handleSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
-      onSubmit(values);
+      // Since the form validation ensures these values are present, we can safely
+      // assert that they're non-optional for the onSubmit handler
+      onSubmit({
+        title: values.title,
+        url: values.url
+      });
       form.reset();
       toast({
         title: link ? 'Link updated' : 'Link added',
