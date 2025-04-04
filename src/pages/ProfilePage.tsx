@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -53,27 +54,31 @@ const ProfilePage = () => {
             }
             
             // Now fetch the user's links
-            const { data, error } = await supabase
-              .from('links')
-              .select('*')
-              .eq('user_id', profileData.userData.id)
-              .order('order_number', { ascending: true });
-            
-            if (error) throw error;
-            
-            // Format links from database format to our app format
-            const formattedLinks = data.map(link => ({
-              id: link.id,
-              userId: link.user_id,
-              title: link.title,
-              url: link.url,
-              order: link.order_number,
-              clicks: link.clicks,
-              createdAt: link.created_at,
-              updatedAt: link.updated_at
-            }));
-            
-            setLinks(formattedLinks);
+            if (profileData.userData.id) {
+              const { data, error } = await supabase
+                .from('links')
+                .select('*')
+                .eq('user_id', profileData.userData.id)
+                .order('order_number', { ascending: true });
+              
+              if (error) throw error;
+              
+              // Format links from database format to our app format
+              if (data) {
+                const formattedLinks = data.map(link => ({
+                  id: link.id,
+                  userId: link.user_id,
+                  title: link.title,
+                  url: link.url,
+                  order: link.order_number,
+                  clicks: link.clicks,
+                  createdAt: link.created_at,
+                  updatedAt: link.updated_at
+                }));
+                
+                setLinks(formattedLinks);
+              }
+            }
           } else {
             toast({
               title: 'Profile not found',

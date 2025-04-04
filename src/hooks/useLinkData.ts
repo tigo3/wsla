@@ -23,7 +23,7 @@ export function useLinkData(userId: string | undefined) {
       if (error) throw error;
 
       // Transform from Supabase format to our app's format
-      const formattedLinks: Link[] = data.map(link => ({
+      const formattedLinks: Link[] = data?.map(link => ({
         id: link.id,
         userId: link.user_id,
         title: link.title,
@@ -32,7 +32,7 @@ export function useLinkData(userId: string | undefined) {
         clicks: link.clicks,
         createdAt: link.created_at,
         updatedAt: link.updated_at
-      }));
+      })) || [];
 
       setLinks(formattedLinks);
     } catch (error) {
@@ -62,7 +62,7 @@ export function useLinkData(userId: string | undefined) {
       if (maxOrderQuery.error) throw maxOrderQuery.error;
       
       const nextOrder = maxOrderQuery.data.length > 0 
-        ? (maxOrderQuery.data[0].order_number + 1) 
+        ? (maxOrderQuery.data[0]?.order_number + 1) 
         : 0;
 
       const { data, error } = await supabase
@@ -80,19 +80,22 @@ export function useLinkData(userId: string | undefined) {
 
       if (error) throw error;
 
-      const newLink: Link = {
-        id: data.id,
-        userId: data.user_id,
-        title: data.title,
-        url: data.url,
-        order: data.order_number,
-        clicks: data.clicks,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at
-      };
+      if (data) {
+        const newLink: Link = {
+          id: data.id,
+          userId: data.user_id,
+          title: data.title,
+          url: data.url,
+          order: data.order_number,
+          clicks: data.clicks,
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
 
-      setLinks([...links, newLink]);
-      return newLink;
+        setLinks([...links, newLink]);
+        return newLink;
+      }
+      return null;
     } catch (error) {
       console.error('Error adding link:', error);
       toast({

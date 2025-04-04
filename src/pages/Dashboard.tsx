@@ -89,23 +89,23 @@ const Dashboard = () => {
 
       if (socialError) throw socialError;
 
-      const socialLinks = socialData.map(link => ({
+      const socialLinks = socialData?.map(link => ({
         platform: link.platform,
         url: link.url
-      }));
+      })) || [];
 
       // Create profile object
       const profileData: Profile = {
-        id: settingsData.id,
+        id: settingsData?.id || '',
         userId: user.id,
-        theme: settingsData.theme,
-        backgroundColor: settingsData.background_color || undefined,
-        backgroundImage: settingsData.background_image || undefined,
-        buttonStyle: settingsData.button_style,
-        fontStyle: settingsData.font_style,
+        theme: settingsData?.theme || 'purple',
+        backgroundColor: settingsData?.background_color || undefined,
+        backgroundImage: settingsData?.background_image || undefined,
+        buttonStyle: settingsData?.button_style || 'filled',
+        fontStyle: settingsData?.font_style || 'sans',
         socialLinks: socialLinks,
-        createdAt: settingsData.created_at,
-        updatedAt: settingsData.updated_at
+        createdAt: settingsData?.created_at || new Date().toISOString(),
+        updatedAt: settingsData?.updated_at || new Date().toISOString()
       };
 
       setProfile(profileData);

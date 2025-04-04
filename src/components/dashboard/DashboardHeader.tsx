@@ -37,7 +37,7 @@ const DashboardHeader = () => {
           </Button>
           
           <Button variant="outline" size="sm" asChild>
-            <a href={`/${user?.username}`} target="_blank" rel="noopener noreferrer">
+            <a href={user?.username ? `/${user.username}` : "/"} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-4 w-4 mr-1" />
               View Page
             </a>

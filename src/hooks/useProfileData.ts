@@ -25,7 +25,7 @@ export function useProfileData() {
       const { data: settingsData, error: settingsError } = await supabase
         .from('profile_settings')
         .select('*')
-        .eq('user_id', profileData.id)
+        .eq('user_id', profileData?.id)
         .single();
 
       if (settingsError) throw settingsError;
@@ -34,45 +34,45 @@ export function useProfileData() {
       const { data: socialData, error: socialError } = await supabase
         .from('social_links')
         .select('*')
-        .eq('user_id', profileData.id);
+        .eq('user_id', profileData?.id);
 
       if (socialError) throw socialError;
 
       // Transform the social links data
-      const socialLinks: SocialLink[] = socialData.map(link => ({
+      const socialLinks: SocialLink[] = socialData?.map(link => ({
         platform: link.platform,
         url: link.url
-      }));
+      })) || [];
 
       // Combine all data into a Profile object
       const fullProfile: Profile = {
-        id: profileData.id,
-        userId: profileData.id,
-        theme: settingsData.theme,
-        backgroundColor: settingsData.background_color || undefined,
-        backgroundImage: settingsData.background_image || undefined,
-        buttonStyle: settingsData.button_style,
-        fontStyle: settingsData.font_style,
+        id: profileData?.id,
+        userId: profileData?.id,
+        theme: settingsData?.theme,
+        backgroundColor: settingsData?.background_color || undefined,
+        backgroundImage: settingsData?.background_image || undefined,
+        buttonStyle: settingsData?.button_style,
+        fontStyle: settingsData?.font_style,
         socialLinks: socialLinks,
-        createdAt: profileData.created_at,
-        updatedAt: profileData.updated_at
+        createdAt: profileData?.created_at,
+        updatedAt: profileData?.updated_at
       };
 
       setProfile(fullProfile);
       
       // Record a profile visit
-      await recordProfileVisit(profileData.id);
+      await recordProfileVisit(profileData?.id);
       
       return {
         profile: fullProfile,
         userData: {
-          id: profileData.id,
-          username: profileData.username,
-          displayName: profileData.display_name,
-          bio: profileData.bio,
-          profileImage: profileData.profile_image,
-          createdAt: profileData.created_at,
-          updatedAt: profileData.updated_at
+          id: profileData?.id,
+          username: profileData?.username,
+          displayName: profileData?.display_name,
+          bio: profileData?.bio,
+          profileImage: profileData?.profile_image,
+          createdAt: profileData?.created_at,
+          updatedAt: profileData?.updated_at
         }
       };
     } catch (error) {
@@ -185,7 +185,9 @@ export function useProfileData() {
     }
   };
 
-  const recordProfileVisit = async (profileId: string) => {
+  const recordProfileVisit = async (profileId: string | undefined) => {
+    if (!profileId) return;
+    
     try {
       await supabase
         .from('profile_visits')
