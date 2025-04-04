@@ -42,7 +42,18 @@ const ProfilePage = () => {
         const profileData = await fetchProfileByUsername(username);
         
         if (profileData) {
-          setUser(profileData.userData);
+          // Setting user with all required properties, including email
+          setUser({
+            id: profileData.userData.id,
+            username: profileData.userData.username,
+            email: profileData.userData.email || '', // Add the missing email property
+            displayName: profileData.userData.displayName,
+            bio: profileData.userData.bio,
+            profileImage: profileData.userData.profileImage,
+            createdAt: profileData.userData.createdAt,
+            updatedAt: profileData.userData.updatedAt
+          });
+          
           setProfile(profileData.profile);
           setLinks(profileData.links);
           
