@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
+import ExamplePage from "./pages/Example";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
                 <AnalyticsDashboard />
               </ProtectedRoute>
             } />
+            <Route path="/example" element={<ExamplePage />} />
             <Route path="/:username" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

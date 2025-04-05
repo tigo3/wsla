@@ -50,9 +50,9 @@ const Home = () => {
                     </Link>
                   </Button>
                   <Button size="lg" variant="outline" asChild>
-                    <a href="/example" target="_blank" rel="noopener noreferrer">
+                    <Link to="/example">
                       View Example
-                    </a>
+                    </Link>
                   </Button>
                 </div>
               </div>
