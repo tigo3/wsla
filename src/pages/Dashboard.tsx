@@ -6,7 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import LinksTab from '@/components/dashboard/LinksTab';
 import AppearanceTab from '@/components/dashboard/AppearanceTab';
-import { Profile } from '@/types';
+import { Profile, Link } from '@/types';
 import { themes } from '@/services/mockDataService';
 import { useToast } from '@/hooks/use-toast';
 import { useLinkData } from '@/hooks/useLinkData';
