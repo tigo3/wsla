@@ -42,6 +42,7 @@ const ProfilePage = () => {
         const profileData = await fetchProfileByUsername(username);
         
         if (profileData) {
+          // Ensure userData has all required properties for User type
           setUser(profileData.userData);
           setProfile(profileData.profile);
           setLinks(profileData.links);

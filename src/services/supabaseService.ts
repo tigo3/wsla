@@ -76,6 +76,10 @@ export const getProfileByUsername = async (username: string) => {
 
   if (linksError) throw linksError;
 
+  // Get the auth user to retrieve the email
+  const { data: authData } = await supabase.auth.getUser();
+  const userEmail = authData?.user?.email || '';
+
   // Format the social links
   const socialLinks: SocialLink[] = socialData.map(link => ({
     platform: link.platform,
@@ -110,6 +114,7 @@ export const getProfileByUsername = async (username: string) => {
     },
     userData: {
       id: profileData.id,
+      email: userEmail, // Include the email property
       username: profileData.username,
       displayName: profileData.display_name,
       bio: profileData.bio,
