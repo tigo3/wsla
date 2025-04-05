@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import { useProfileData } from '@/hooks/useProfileData';
 import { recordLinkClick } from '@/services/supabaseService';
+import { Card, CardContent } from '@/components/ui/card';
 
 const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -85,7 +86,11 @@ const ProfilePage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Loading profile...</p>
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="rounded-full bg-gray-200 h-20 w-20 mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-32"></div>
+        </div>
       </div>
     );
   }
@@ -93,16 +98,18 @@ const ProfilePage = () => {
   if (!user || !profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
-        <p className="text-muted-foreground mb-6">
-          The profile you're looking for doesn't exist or has been removed.
-        </p>
-        <Button asChild>
-          <a href="/">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </a>
-        </Button>
+        <Card className="w-full max-w-md p-6 text-center">
+          <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
+          <p className="text-muted-foreground mb-6">
+            The profile you're looking for doesn't exist or has been removed.
+          </p>
+          <Button asChild>
+            <a href="/">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Home
+            </a>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -110,49 +117,64 @@ const ProfilePage = () => {
   // Get font family based on profile settings
   const fontStyle = fontStyles.find(f => f.id === profile.fontStyle) || fontStyles[0];
 
+  // Determine if the background is dark to adjust text color
+  const backgroundIsDark = profile.backgroundColor?.startsWith('#0') || 
+                           profile.backgroundColor?.startsWith('#1') ||
+                           profile.backgroundColor?.startsWith('#2');
+
   return (
     <div 
-      className="min-h-screen flex flex-col items-center py-12 px-4"
+      className="min-h-screen flex flex-col items-center py-12 px-4 bg-cover bg-center bg-no-repeat"
       style={{ 
         fontFamily: fontStyle.fontFamily,
         background: profile.backgroundImage || profile.backgroundColor || 'transparent',
+        color: backgroundIsDark ? 'white' : 'inherit'
       }}
     >
-      <div 
-        className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-sm border p-8"
+      <Card 
+        className="w-full max-w-md mx-auto rounded-2xl shadow-lg border overflow-hidden transition-all duration-300 backdrop-blur-sm"
         style={{ 
-          color: 'var(--foreground)',
+          backgroundColor: backgroundIsDark ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
+          color: backgroundIsDark ? 'white' : 'var(--foreground)',
         }}
       >
-        <ProfileHeader user={user} />
-        
-        <SocialLinks 
-          socialLinks={profile.socialLinks} 
-          themeColor={themeColor}
-        />
-        
-        <div className="space-y-3 mt-6">
-          {links.map((link) => (
-            <LinkButton
-              key={link.id}
-              link={link}
-              userId={user.id}
-              buttonStyle={profile.buttonStyle}
-              themeColor={themeColor}
-              onLinkClick={() => handleLinkClick(link.id)}
-            />
-          ))}
-        </div>
-        
-        <div className="mt-10 pt-6 border-t text-center">
-          <a 
-            href="/" 
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Powered by Linkly
-          </a>
-        </div>
-      </div>
+        <CardContent className="p-8">
+          <ProfileHeader user={user} />
+          
+          <SocialLinks 
+            socialLinks={profile.socialLinks} 
+            themeColor={themeColor}
+          />
+          
+          {links.length > 0 ? (
+            <div className="space-y-3 mt-6">
+              {links.map((link) => (
+                <LinkButton
+                  key={link.id}
+                  link={link}
+                  userId={user.id}
+                  buttonStyle={profile.buttonStyle}
+                  themeColor={themeColor}
+                  onLinkClick={() => handleLinkClick(link.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-muted-foreground">
+              No links have been added yet
+            </div>
+          )}
+          
+          <div className="mt-10 pt-6 border-t text-center">
+            <a 
+              href="/" 
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Powered by Linkly
+            </a>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
