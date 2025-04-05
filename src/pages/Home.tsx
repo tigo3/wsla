@@ -11,7 +11,7 @@ const Home = () => {
     <div className="min-h-screen flex flex-col">
       <header className="w-full px-4 py-6 border-b">
         <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold gradient-text">Wsla</h1>
+          <h1 className="text-2xl font-bold gradient-text">Linkly</h1>
           <div className="space-x-2">
             {isAuthenticated ? (
               <Button asChild>

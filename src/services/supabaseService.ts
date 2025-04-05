@@ -94,10 +94,6 @@ export const getProfileByUsername = async (username: string) => {
     updatedAt: link.updated_at
   }));
 
-  // Get user data to include email
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  const userEmail = userData?.user?.email || '';
-
   // Return the formatted profile data
   return {
     profile: {
@@ -115,7 +111,6 @@ export const getProfileByUsername = async (username: string) => {
     userData: {
       id: profileData.id,
       username: profileData.username,
-      email: userEmail, // Include email in user data
       displayName: profileData.display_name,
       bio: profileData.bio,
       profileImage: profileData.profile_image,
