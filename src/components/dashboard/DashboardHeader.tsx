@@ -36,12 +36,14 @@ const DashboardHeader = () => {
             </Link>
           </Button>
           
-          <Button variant="outline" size="sm" asChild>
-            <a href={user?.username ? `/${user.username}` : "/"} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-1" />
-              View Page
-            </a>
-          </Button>
+          {user?.username && (
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/${user.username}`} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View Page
+              </Link>
+            </Button>
+          )}
           
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-1" />
