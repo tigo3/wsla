@@ -17,7 +17,7 @@ const formSchema = z.object({
 
 const LoginForm = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,9 +38,14 @@ const LoginForm = () => {
         description: 'You have successfully logged in',
       });
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      // Error is already handled in the auth context
+      toast({
+        title: 'Login Failed',
+        description: error.message || 'Failed to login. Please check your credentials.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
     }
   };

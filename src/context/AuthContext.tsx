@@ -41,48 +41,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // First set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
+      (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.email);
         setSession(currentSession);
+        setIsAuthenticated(!!currentSession);
+        
         if (currentSession?.user) {
-          try {
-            // Fetch user profile data when authenticated
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentSession.user.id)
-              .single();
+          // Use setTimeout to avoid potential deadlocks with Supabase client
+          setTimeout(async () => {
+            try {
+              // Fetch user profile data when authenticated
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentSession.user.id)
+                .single();
 
-            if (error) throw error;
+              if (error) throw error;
 
-            setUser({
-              id: currentSession.user.id,
-              email: currentSession.user.email || '',
-              username: data?.username,
-              displayName: data?.display_name,
-              bio: data?.bio,
-              profileImage: data?.profile_image,
-              createdAt: data?.created_at,
-              updatedAt: data?.updated_at
-            });
-          } catch (error) {
-            console.error('Error fetching user profile:', error);
-            setUser({
-              id: currentSession.user.id,
-              email: currentSession.user.email || ''
-            });
-          }
+              setUser({
+                id: currentSession.user.id,
+                email: currentSession.user.email || '',
+                username: data?.username,
+                displayName: data?.display_name,
+                bio: data?.bio,
+                profileImage: data?.profile_image,
+                createdAt: data?.created_at,
+                updatedAt: data?.updated_at
+              });
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
+              setUser({
+                id: currentSession.user.id,
+                email: currentSession.user.email || ''
+              });
+            } finally {
+              setIsLoading(false);
+            }
+          }, 0);
         } else {
           setUser(null);
+          setIsLoading(false);
         }
-        
-        setIsAuthenticated(!!currentSession);
-        setIsLoading(false);
       }
     );
 
     // Then check for existing session
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", currentSession?.user?.email);
       setSession(currentSession);
+      setIsAuthenticated(!!currentSession);
       
       if (currentSession?.user) {
         try {
@@ -116,7 +124,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
       }
       
-      setIsAuthenticated(!!currentSession);
       setIsLoading(false);
     });
 
