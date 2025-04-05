@@ -4,14 +4,35 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { themes } from '@/services/mockDataService';
 
 interface ThemeSelectorProps {
   currentTheme: string;
   onThemeChange: (themeId: string) => void;
+  isLoading?: boolean;
 }
 
-const ThemeSelector: React.FC<ThemeSelectorProps> = ({ currentTheme, onThemeChange }) => {
+const ThemeSelector: React.FC<ThemeSelectorProps> = ({ 
+  currentTheme, 
+  onThemeChange,
+  isLoading = false
+}) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4">Theme</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-20 rounded-lg" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="p-6">

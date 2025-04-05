@@ -3,19 +3,37 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { buttonStyles } from '@/services/mockDataService';
 
 interface ButtonStyleSelectorProps {
   currentStyle: string;
   onStyleChange: (styleId: string) => void;
   themeColor: string;
+  isLoading?: boolean;
 }
 
 const ButtonStyleSelector: React.FC<ButtonStyleSelectorProps> = ({
   currentStyle,
   onStyleChange,
   themeColor,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4">Button Style</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-20 rounded-lg" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="p-6">

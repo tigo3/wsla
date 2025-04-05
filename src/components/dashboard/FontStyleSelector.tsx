@@ -3,17 +3,35 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { fontStyles } from '@/services/mockDataService';
 
 interface FontStyleSelectorProps {
   currentFont: string;
   onFontChange: (fontId: string) => void;
+  isLoading?: boolean;
 }
 
 const FontStyleSelector: React.FC<FontStyleSelectorProps> = ({
   currentFont,
   onFontChange,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4">Font Style</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-20 rounded-lg" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardContent className="p-6">

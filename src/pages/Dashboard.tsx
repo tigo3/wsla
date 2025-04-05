@@ -1,22 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import LinkCard from '@/components/dashboard/LinkCard';
-import LinkForm from '@/components/dashboard/LinkForm';
-import ThemeSelector from '@/components/dashboard/ThemeSelector';
-import ButtonStyleSelector from '@/components/dashboard/ButtonStyleSelector';
-import FontStyleSelector from '@/components/dashboard/FontStyleSelector';
-import { Link, Profile } from '@/types';
+import LinksTab from '@/components/dashboard/LinksTab';
+import AppearanceTab from '@/components/dashboard/AppearanceTab';
+import { Profile } from '@/types';
 import { themes } from '@/services/mockDataService';
 import { useToast } from '@/hooks/use-toast';
-import { Plus } from 'lucide-react';
 import { useLinkData } from '@/hooks/useLinkData';
 import { useProfileData } from '@/hooks/useProfileData';
+import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
@@ -24,10 +19,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isAddLinkDialogOpen, setIsAddLinkDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('links');
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default color
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const {
     links,
@@ -40,8 +34,21 @@ const Dashboard = () => {
   } = useLinkData(user?.id);
 
   const {
-    updateProfileSettings
+    fetchProfileByUsername
   } = useProfileData();
+
+  // Get initial profile data
+  const [initialProfile, setInitialProfile] = useState<Profile | null>(null);
+  
+  // Use the new profile settings hook
+  const {
+    profile,
+    setProfile,
+    isUpdating,
+    updateTheme,
+    updateButtonStyle,
+    updateFontStyle
+  } = useProfileSettings(initialProfile);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -70,9 +77,21 @@ const Dashboard = () => {
 
   const fetchUserData = async () => {
     if (!user) return;
+    setIsLoadingProfile(true);
 
     try {
-      // Get profile settings
+      // First try to get the profile using the username
+      if (user.username) {
+        const profileData = await fetchProfileByUsername(user.username);
+        if (profileData) {
+          setInitialProfile(profileData.profile);
+          setProfile(profileData.profile);
+          setIsLoadingProfile(false);
+          return;
+        }
+      }
+
+      // Fallback: Get profile settings directly
       const { data: settingsData, error: settingsError } = await supabase
         .from('profile_settings')
         .select('*')
@@ -96,7 +115,7 @@ const Dashboard = () => {
 
       // Create profile object
       const profileData: Profile = {
-        id: user.id, // Use user.id instead of settingsData.id
+        id: user.id,
         userId: user.id,
         theme: settingsData?.theme || 'purple',
         backgroundColor: settingsData?.background_color || undefined,
@@ -108,6 +127,7 @@ const Dashboard = () => {
         updatedAt: settingsData?.updated_at || new Date().toISOString()
       };
 
+      setInitialProfile(profileData);
       setProfile(profileData);
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -116,6 +136,8 @@ const Dashboard = () => {
         description: 'Failed to load your profile settings',
         variant: 'destructive',
       });
+    } finally {
+      setIsLoadingProfile(false);
     }
   };
 
@@ -123,7 +145,6 @@ const Dashboard = () => {
     if (user) {
       const newLink = await addLink(data.title, data.url);
       if (newLink) {
-        setIsAddLinkDialogOpen(false);
         toast({
           title: 'Link Added',
           description: 'Your link has been added successfully',
@@ -132,100 +153,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleUpdateLink = async (linkId: string, data: { title: string; url: string }) => {
-    try {
-      const success = await updateLink(linkId, data);
-      if (success) {
-        toast({
-          title: 'Link Updated',
-          description: 'Your link has been updated successfully',
-        });
-      }
-    } catch (error) {
-      console.error('Error updating link:', error);
-      // Toast already shown in the hook
-    }
-  };
-
-  const handleDeleteLink = async (linkId: string) => {
-    try {
-      const success = await deleteLink(linkId);
-      if (success) {
-        toast({
-          title: 'Success',
-          description: 'Link deleted successfully',
-        });
-      }
-    } catch (error) {
-      console.error('Error deleting link:', error);
-      // Toast already shown in the hook
-    }
-  };
-
-  const handleThemeChange = async (themeId: string) => {
-    if (user && profile) {
-      const success = await updateProfileSettings(user.id, { theme: themeId });
-      
-      if (success) {
-        // Update local state
-        setProfile({
-          ...profile,
-          theme: themeId
-        });
-        
-        // Update theme color
-        const selectedTheme = themes.find(t => t.id === themeId);
-        if (selectedTheme) {
-          setThemeColor(selectedTheme.primaryColor);
-        }
-        
-        toast({
-          title: 'Theme updated',
-          description: 'Your profile theme has been updated',
-        });
-      }
-    }
-  };
-
-  const handleButtonStyleChange = async (styleId: string) => {
-    if (user && profile) {
-      const success = await updateProfileSettings(user.id, { buttonStyle: styleId });
-      
-      if (success) {
-        // Update local state
-        setProfile({
-          ...profile,
-          buttonStyle: styleId
-        });
-        
-        toast({
-          title: 'Button style updated',
-          description: 'Your profile button style has been updated',
-        });
-      }
-    }
-  };
-
-  const handleFontStyleChange = async (fontId: string) => {
-    if (user && profile) {
-      const success = await updateProfileSettings(user.id, { fontStyle: fontId });
-      
-      if (success) {
-        // Update local state
-        setProfile({
-          ...profile,
-          fontStyle: fontId
-        });
-        
-        toast({
-          title: 'Font style updated',
-          description: 'Your profile font style has been updated',
-        });
-      }
-    }
-  };
-
-  if (!user || !profile) {
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
@@ -245,71 +173,28 @@ const Dashboard = () => {
           </TabsList>
           
           <TabsContent value="links" className="mt-4">
-            <div className="max-w-2xl mx-auto">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">My Links</h2>
-                <Button onClick={() => setIsAddLinkDialogOpen(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Link
-                </Button>
-              </div>
-              
-              {links.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg border">
-                  <h3 className="text-lg font-medium mb-2">No links yet</h3>
-                  <p className="text-muted-foreground mb-4">Add your first link to get started</p>
-                  <Button onClick={() => setIsAddLinkDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Link
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  {links.map((link) => (
-                    <LinkCard
-                      key={link.id}
-                      link={link}
-                      onUpdate={handleUpdateLink}
-                      onDelete={handleDeleteLink}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+            <LinksTab 
+              links={links}
+              isLoading={linksLoading}
+              onAdd={handleAddLink}
+              onUpdate={updateLink}
+              onDelete={deleteLink}
+              onReorder={reorderLinks}
+            />
           </TabsContent>
           
           <TabsContent value="appearance" className="mt-4">
-            <div className="max-w-3xl mx-auto grid gap-8">
-              <h2 className="text-2xl font-bold">Customize Appearance</h2>
-              
-              <ThemeSelector 
-                currentTheme={profile.theme} 
-                onThemeChange={handleThemeChange} 
-              />
-              
-              <ButtonStyleSelector 
-                currentStyle={profile.buttonStyle} 
-                onStyleChange={handleButtonStyleChange} 
-                themeColor={themeColor}
-              />
-              
-              <FontStyleSelector 
-                currentFont={profile.fontStyle} 
-                onFontChange={handleFontStyleChange} 
-              />
-            </div>
+            <AppearanceTab 
+              profile={profile}
+              isUpdating={isUpdating || isLoadingProfile}
+              themeColor={themeColor}
+              onThemeChange={updateTheme}
+              onButtonStyleChange={updateButtonStyle}
+              onFontStyleChange={updateFontStyle}
+            />
           </TabsContent>
         </Tabs>
       </main>
-      
-      <Dialog open={isAddLinkDialogOpen} onOpenChange={setIsAddLinkDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add New Link</DialogTitle>
-          </DialogHeader>
-          <LinkForm onSubmit={handleAddLink} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
