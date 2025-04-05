@@ -12,9 +12,9 @@ interface LinksTabProps {
   links: Link[];
   isLoading: boolean;
   onAdd: (data: { title: string; url: string }) => Promise<void>;
-  onUpdate: (linkId: string, data: { title: string; url: string }) => Promise<void>;
-  onDelete: (linkId: string) => Promise<void>;
-  onReorder?: (links: Link[]) => Promise<void>;
+  onUpdate: (linkId: string, data: { title: string; url: string }) => Promise<boolean | void>;
+  onDelete: (linkId: string) => Promise<boolean | void>;
+  onReorder?: (links: Link[]) => Promise<boolean | void>;
 }
 
 const LinksTab: React.FC<LinksTabProps> = ({

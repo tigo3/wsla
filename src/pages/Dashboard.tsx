@@ -153,6 +153,19 @@ const Dashboard = () => {
     }
   };
 
+  // Add wrapper functions to convert Promise<boolean> to Promise<void>
+  const handleUpdateLink = async (linkId: string, data: { title: string; url: string }) => {
+    return await updateLink(linkId, data);
+  };
+
+  const handleDeleteLink = async (linkId: string) => {
+    return await deleteLink(linkId);
+  };
+
+  const handleReorderLinks = async (links: Link[]) => {
+    return await reorderLinks(links);
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -177,9 +190,9 @@ const Dashboard = () => {
               links={links}
               isLoading={linksLoading}
               onAdd={handleAddLink}
-              onUpdate={updateLink}
-              onDelete={deleteLink}
-              onReorder={reorderLinks}
+              onUpdate={handleUpdateLink}
+              onDelete={handleDeleteLink}
+              onReorder={handleReorderLinks}
             />
           </TabsContent>
           
