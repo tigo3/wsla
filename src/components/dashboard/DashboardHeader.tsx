@@ -18,7 +18,7 @@ const DashboardHeader = () => {
     <header className="w-full py-4 px-4 border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
       <div className="container mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-1">
-          <h1 className="text-xl font-bold gradient-text">Linkly</h1>
+          <h1 className="text-xl font-bold gradient-text">Wsla</h1>
         </div>
         
         <div className="flex items-center space-x-4">

@@ -33,7 +33,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <div className="flex min-h-screen w-full bg-gray-50">
         <Sidebar variant="floating">
           <SidebarHeader className="flex h-14 items-center border-b px-4">
-            <h2 className="text-xl font-bold gradient-text">Linkly</h2>
+            <h2 className="text-xl font-bold gradient-text">Wsla</h2>
           </SidebarHeader>
           
           <SidebarContent>

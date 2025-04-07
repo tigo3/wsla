@@ -64,17 +64,17 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				brand: {
-					purple: "#9b87f5",
-					"purple-dark": "#7E69AB",
-					"purple-light": "#D6BCFA"
+					purple: "#7E69AB",
+					"purple-dark": "#403E43",
+					"purple-light": "#9b87f5"
 				},
 				theme: {
-					"purple": "#9b87f5",
-					"blue": "#60a5fa",
-					"green": "#34d399",
-					"red": "#f87171",
-					"orange": "#fb923c",
-					"pink": "#f472b6"
+					"purple": "#7E69AB",
+					"blue": "#4A6FA5",
+					"green": "#2D8A6A",
+					"red": "#C35757",
+					"orange": "#C47A30",
+					"pink": "#B3478C"
 				}
 			},
 			borderRadius: {
