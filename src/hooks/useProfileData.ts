@@ -8,23 +8,119 @@ import { supabase } from '@/integrations/supabase/client';
 export function useProfileData() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchProfileByUsername = async (username: string) => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      const data = await getProfileByUsername(username);
-      
-      if (data) {
-        setProfile(data.profile);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
         
-        // Record a profile visit
-        await recordProfileVisit(data.userData.id);
+        // Handle the specific case where the profile is not found
+        if (profileError.code === 'PGRST116') {
+          setError(`Profile not found for username: ${username}`);
+          toast({
+            title: 'Profile not found',
+            description: `No profile found for username: ${username}`,
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return null;
+        }
+        
+        throw profileError;
       }
+
+      // Continue with fetching related data
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('profile_settings')
+        .select('*')
+        .eq('user_id', profileData.id)
+        .single();
+
+      if (settingsError) throw settingsError;
+
+      // Get the user's social links
+      const { data: socialData, error: socialError } = await supabase
+        .from('social_links')
+        .select('*')
+        .eq('user_id', profileData.id);
+
+      if (socialError) throw socialError;
+
+      // Get the user's links
+      const { data: linksData, error: linksError } = await supabase
+        .from('links')
+        .select('*')
+        .eq('user_id', profileData.id)
+        .order('order_number', { ascending: true });
+
+      if (linksError) throw linksError;
+
+      // Get the auth user to retrieve the email
+      const { data: authData } = await supabase.auth.getUser();
+      const userEmail = authData?.user?.email || '';
+
+      // Format the social links
+      const socialLinks: SocialLink[] = socialData?.map(link => ({
+        platform: link.platform,
+        url: link.url
+      })) || [];
+
+      // Format the profile data
+      const formattedProfile: Profile = {
+        id: profileData.id,
+        userId: profileData.id,
+        theme: settingsData?.theme || 'purple',
+        backgroundColor: settingsData?.background_color,
+        backgroundImage: settingsData?.background_image,
+        buttonStyle: settingsData?.button_style || 'filled',
+        fontStyle: settingsData?.font_style || 'sans',
+        socialLinks,
+        createdAt: profileData.created_at,
+        updatedAt: profileData.updated_at
+      };
+
+      setProfile(formattedProfile);
       
-      return data;
+      // Record a profile visit
+      await recordProfileVisit(profileData.id);
+      
+      return {
+        profile: formattedProfile,
+        userData: {
+          id: profileData.id,
+          email: userEmail,
+          username: profileData.username,
+          displayName: profileData.display_name,
+          bio: profileData.bio,
+          profileImage: profileData.profile_image,
+          createdAt: profileData.created_at,
+          updatedAt: profileData.updated_at
+        },
+        links: linksData?.map(link => ({
+          id: link.id,
+          userId: link.user_id,
+          title: link.title,
+          url: link.url,
+          order: link.order_number,
+          clicks: link.clicks,
+          createdAt: link.created_at,
+          updatedAt: link.updated_at
+        })) || []
+      };
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setError('Failed to load profile. Please try again.');
       toast({
         title: 'Error',
         description: 'Failed to load profile. Please try again.',
@@ -137,6 +233,7 @@ export function useProfileData() {
   return {
     profile,
     isLoading,
+    error,
     fetchProfileByUsername,
     updateProfileSettings: updateProfileSettingsData,
     updateSocialLinks

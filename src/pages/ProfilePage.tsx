@@ -12,24 +12,28 @@ import { ArrowLeft } from 'lucide-react';
 import { useProfileData } from '@/hooks/useProfileData';
 import { recordLinkClick } from '@/services/supabaseService';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { profile: profileData, isLoading: profileLoading, fetchProfileByUsername } = useProfileData();
+  const { fetchProfileByUsername, error: profileError } = useProfileData();
   
   const [user, setUser] = useState<User | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default purple
 
   useEffect(() => {
     const loadProfile = async () => {
       setIsLoading(true);
+      setError(null);
       
       if (!username) {
+        setError('No username provided');
         toast({
           title: 'Error',
           description: 'No username provided',
@@ -45,7 +49,7 @@ const ProfilePage = () => {
         if (profileData) {
           setUser(profileData.userData);
           setProfile(profileData.profile);
-          setLinks(profileData.links);
+          setLinks(profileData.links || []);
           
           // Set theme color
           const selectedTheme = themes.find(t => t.id === profileData.profile.theme);
@@ -53,21 +57,12 @@ const ProfilePage = () => {
             setThemeColor(selectedTheme.primaryColor);
           }
         } else {
-          toast({
-            title: 'Profile not found',
-            description: `No profile found for username: ${username}`,
-            variant: 'destructive',
-          });
-          navigate('/not-found');
+          setError(`No profile found for username: ${username}`);
+          // We don't redirect here since we want to show a nice error message
         }
-      } catch (error) {
-        console.error('Error loading profile:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load profile',
-          variant: 'destructive',
-        });
-        navigate('/not-found');
+      } catch (err) {
+        console.error('Error loading profile:', err);
+        setError('Failed to load profile');
       } finally {
         setIsLoading(false);
       }
@@ -101,20 +96,22 @@ const ProfilePage = () => {
     );
   }
 
-  if (!user || !profile) {
+  if (error || !user || !profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
         <Card className="w-full max-w-md p-6 text-center">
-          <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
-          <p className="text-muted-foreground mb-6">
-            The profile you're looking for doesn't exist or has been removed.
-          </p>
-          <Button asChild>
-            <a href="/">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </a>
-          </Button>
+          <CardContent>
+            <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
+            <p className="text-muted-foreground mb-6">
+              {error || "The profile you're looking for doesn't exist or has been removed."}
+            </p>
+            <Button asChild>
+              <a href="/">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Home
+              </a>
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
