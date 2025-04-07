@@ -17,7 +17,7 @@ const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { fetchProfileByUsername, isLoading: profileLoading } = useProfileData();
+  const { profile: profileData, isLoading: profileLoading, fetchProfileByUsername } = useProfileData();
   
   const [user, setUser] = useState<User | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
@@ -43,7 +43,6 @@ const ProfilePage = () => {
         const profileData = await fetchProfileByUsername(username);
         
         if (profileData) {
-          // Ensure userData has all required properties for User type
           setUser(profileData.userData);
           setProfile(profileData.profile);
           setLinks(profileData.links);
@@ -59,6 +58,7 @@ const ProfilePage = () => {
             description: `No profile found for username: ${username}`,
             variant: 'destructive',
           });
+          navigate('/not-found');
         }
       } catch (error) {
         console.error('Error loading profile:', error);
@@ -67,6 +67,7 @@ const ProfilePage = () => {
           description: 'Failed to load profile',
           variant: 'destructive',
         });
+        navigate('/not-found');
       } finally {
         setIsLoading(false);
       }
@@ -85,11 +86,16 @@ const ProfilePage = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse flex flex-col items-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse flex flex-col items-center p-4">
           <div className="rounded-full bg-gray-200 h-20 w-20 mb-4"></div>
           <div className="h-4 bg-gray-200 rounded w-48 mb-2"></div>
-          <div className="h-3 bg-gray-200 rounded w-32"></div>
+          <div className="h-3 bg-gray-200 rounded w-32 mb-6"></div>
+          <div className="space-y-3 w-full max-w-md">
+            <div className="h-10 bg-gray-200 rounded w-full"></div>
+            <div className="h-10 bg-gray-200 rounded w-full"></div>
+            <div className="h-10 bg-gray-200 rounded w-full"></div>
+          </div>
         </div>
       </div>
     );
@@ -97,7 +103,7 @@ const ProfilePage = () => {
 
   if (!user || !profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
         <Card className="w-full max-w-md p-6 text-center">
           <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
           <p className="text-muted-foreground mb-6">
@@ -117,17 +123,34 @@ const ProfilePage = () => {
   // Get font family based on profile settings
   const fontStyle = fontStyles.find(f => f.id === profile.fontStyle) || fontStyles[0];
 
-  // Determine if the background is dark to adjust text color
-  const backgroundIsDark = profile.backgroundColor?.startsWith('#0') || 
-                           profile.backgroundColor?.startsWith('#1') ||
-                           profile.backgroundColor?.startsWith('#2');
+  // Determine if the background is dark by checking hex code
+  const isDarkColor = (color?: string) => {
+    if (!color || !color.startsWith('#')) return false;
+    
+    // Convert hex to RGB
+    const hexColor = color.replace('#', '');
+    const r = parseInt(hexColor.substr(0, 2), 16);
+    const g = parseInt(hexColor.substr(2, 2), 16);
+    const b = parseInt(hexColor.substr(4, 2), 16);
+    
+    // Calculate brightness - formula weights RGB according to human perception
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    
+    // Return true if color is dark (brightness < 128)
+    return brightness < 128;
+  };
+
+  const backgroundIsDark = isDarkColor(profile.backgroundColor) || profile.backgroundImage;
 
   return (
     <div 
-      className="min-h-screen flex flex-col items-center py-12 px-4 bg-cover bg-center bg-no-repeat"
+      className="min-h-screen flex flex-col items-center py-12 px-4 bg-cover bg-center bg-no-repeat transition-all duration-300"
       style={{ 
         fontFamily: fontStyle.fontFamily,
-        background: profile.backgroundImage || profile.backgroundColor || 'transparent',
+        background: profile.backgroundImage 
+          ? `url(${profile.backgroundImage})` 
+          : profile.backgroundColor || 'var(--background)',
+        backgroundSize: 'cover',
         color: backgroundIsDark ? 'white' : 'inherit'
       }}
     >

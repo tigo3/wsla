@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Profile, SocialLink } from '@/types';
@@ -55,8 +56,8 @@ export function useProfileData() {
           theme: settings.theme || profile.theme,
           buttonStyle: settings.buttonStyle || profile.buttonStyle,
           fontStyle: settings.fontStyle || profile.fontStyle,
-          backgroundColor: settings.backgroundColor,
-          backgroundImage: settings.backgroundImage,
+          backgroundColor: settings.backgroundColor || profile.backgroundColor,
+          backgroundImage: settings.backgroundImage || profile.backgroundImage,
           updatedAt: new Date().toISOString()
         });
       }
