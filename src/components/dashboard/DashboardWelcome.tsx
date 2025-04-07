@@ -4,7 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { User } from '@/types';
 
 interface DashboardWelcomeProps {
-  user: User;
+  user: {
+    id: string;
+    username?: string;
+    displayName?: string;
+    email: string;
+  };
   linkCount: number;
   totalClicks: number;
 }
