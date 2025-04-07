@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
@@ -22,7 +22,8 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('links');
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default color
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-
+  const [initialProfile, setInitialProfile] = useState<Profile | null>(null);
+  
   const {
     links,
     isLoading: linksLoading,
@@ -36,11 +37,8 @@ const Dashboard = () => {
   const {
     fetchProfileByUsername
   } = useProfileData();
-
-  // Get initial profile data
-  const [initialProfile, setInitialProfile] = useState<Profile | null>(null);
   
-  // Use the new profile settings hook
+  // Use the profile settings hook
   const {
     profile,
     setProfile,
@@ -57,14 +55,6 @@ const Dashboard = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Load user content
-  useEffect(() => {
-    if (user) {
-      fetchUserData();
-      fetchLinks();
-    }
-  }, [user]);
-
   // Update theme color when profile changes
   useEffect(() => {
     if (profile) {
@@ -75,7 +65,7 @@ const Dashboard = () => {
     }
   }, [profile]);
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     if (!user) return;
     setIsLoadingProfile(true);
 
@@ -139,7 +129,15 @@ const Dashboard = () => {
     } finally {
       setIsLoadingProfile(false);
     }
-  };
+  }, [user, fetchProfileByUsername, setProfile, toast]);
+
+  // Load user content
+  useEffect(() => {
+    if (user) {
+      fetchUserData();
+      fetchLinks();
+    }
+  }, [user, fetchUserData, fetchLinks]);
 
   const handleAddLink = async (data: { title: string; url: string }) => {
     if (user) {

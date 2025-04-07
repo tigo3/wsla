@@ -18,7 +18,7 @@ const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { fetchProfileByUsername, error: profileError } = useProfileData();
+  const { fetchProfileByUsername } = useProfileData();
   
   const [user, setUser] = useState<User | null>(null);
   const [links, setLinks] = useState<Link[]>([]);
@@ -137,7 +137,7 @@ const ProfilePage = () => {
     return brightness < 128;
   };
 
-  const backgroundIsDark = isDarkColor(profile.backgroundColor) || profile.backgroundImage;
+  const backgroundIsDark = isDarkColor(profile.backgroundColor) || !!profile.backgroundImage;
 
   return (
     <div 

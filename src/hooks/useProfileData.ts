@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Profile, SocialLink } from '@/types';
-import { getProfileByUsername, updateProfileSettings } from '@/services/supabaseService';
+import { updateProfileSettings } from '@/services/supabaseService';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useProfileData() {
@@ -11,7 +11,7 @@ export function useProfileData() {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchProfileByUsername = async (username: string) => {
+  const fetchProfileByUsername = useCallback(async (username: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -28,11 +28,6 @@ export function useProfileData() {
         // Handle the specific case where the profile is not found
         if (profileError.code === 'PGRST116') {
           setError(`Profile not found for username: ${username}`);
-          toast({
-            title: 'Profile not found',
-            description: `No profile found for username: ${username}`,
-            variant: 'destructive',
-          });
           setIsLoading(false);
           return null;
         }
@@ -121,18 +116,13 @@ export function useProfileData() {
     } catch (error) {
       console.error('Error fetching profile:', error);
       setError('Failed to load profile. Please try again.');
-      toast({
-        title: 'Error',
-        description: 'Failed to load profile. Please try again.',
-        variant: 'destructive',
-      });
       return null;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const updateProfileSettingsData = async (
+  const updateProfileSettingsData = useCallback(async (
     userId: string, 
     settings: { 
       theme?: string; 
@@ -168,9 +158,9 @@ export function useProfileData() {
       });
       return false;
     }
-  };
+  }, [profile, toast]);
 
-  const updateSocialLinks = async (userId: string, socialLinks: SocialLink[]) => {
+  const updateSocialLinks = useCallback(async (userId: string, socialLinks: SocialLink[]) => {
     try {
       // First remove all existing social links
       const { error: deleteError } = await supabase
@@ -215,9 +205,9 @@ export function useProfileData() {
       });
       return false;
     }
-  };
+  }, [profile, toast]);
 
-  const recordProfileVisit = async (profileId: string | undefined) => {
+  const recordProfileVisit = useCallback(async (profileId: string | undefined) => {
     if (!profileId) return;
     
     try {
@@ -228,7 +218,7 @@ export function useProfileData() {
       console.error('Error recording profile visit:', error);
       // Don't show a toast for this operation
     }
-  };
+  }, []);
 
   return {
     profile,
