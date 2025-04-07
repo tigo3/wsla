@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import LinksTab from '@/components/dashboard/LinksTab';
 import AppearanceTab from '@/components/dashboard/AppearanceTab';
 import { Profile, Link } from '@/types';
@@ -13,6 +12,8 @@ import { useLinkData } from '@/hooks/useLinkData';
 import { useProfileData } from '@/hooks/useProfileData';
 import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { supabase } from '@/integrations/supabase/client';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import DashboardWelcome from '@/components/dashboard/DashboardWelcome';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -64,6 +65,9 @@ const Dashboard = () => {
       }
     }
   }, [profile]);
+
+  // Calculate total clicks
+  const totalClicks = links.reduce((total, link) => total + link.clicks, 0);
 
   const fetchUserData = useCallback(async () => {
     if (!user) return;
@@ -166,24 +170,36 @@ const Dashboard = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 rounded-full bg-gray-200 mb-4"></div>
+          <div className="h-4 w-48 bg-gray-200 rounded mb-2.5"></div>
+          <div className="h-3 w-32 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <DashboardHeader />
-      
-      <main className="flex-grow container mx-auto py-8 px-4">
+    <DashboardLayout>
+      <main className="container mx-auto py-6 px-4">
+        <DashboardWelcome 
+          user={user} 
+          linkCount={links.length} 
+          totalClicks={totalClicks} 
+        />
+        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-8">
-            <TabsTrigger value="links">My Links</TabsTrigger>
-            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
+            <TabsTrigger value="links" className="text-sm font-medium">
+              My Links
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="text-sm font-medium">
+              Appearance
+            </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="links" className="mt-4">
+          <TabsContent value="links" className="mt-4 animate-fade-in">
             <LinksTab 
               links={links}
               isLoading={linksLoading}
@@ -194,7 +210,7 @@ const Dashboard = () => {
             />
           </TabsContent>
           
-          <TabsContent value="appearance" className="mt-4">
+          <TabsContent value="appearance" className="mt-4 animate-fade-in">
             <AppearanceTab 
               profile={profile}
               isUpdating={isUpdating || isLoadingProfile}
@@ -206,7 +222,7 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
-    </div>
+    </DashboardLayout>
   );
 };
 

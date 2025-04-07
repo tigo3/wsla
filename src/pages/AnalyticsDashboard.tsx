@@ -3,12 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import VisitsChart from '@/components/analytics/VisitsChart';
 import LinkClicksTable from '@/components/analytics/LinkClicksTable';
 import { Link, Analytics } from '@/types';
 import { getLinks, getAnalytics, initializeMockData } from '@/services/mockDataService';
 import { useToast } from '@/hooks/use-toast';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
 const AnalyticsDashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -57,12 +57,15 @@ const AnalyticsDashboard = () => {
 
   if (isLoading || !user || !analytics) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <DashboardHeader />
-        <div className="flex-grow flex items-center justify-center">
-          <p>Loading analytics data...</p>
+      <DashboardLayout>
+        <div className="flex-grow flex items-center justify-center p-8">
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="h-12 w-12 rounded-full bg-gray-200 mb-4"></div>
+            <div className="h-4 w-48 bg-gray-200 rounded mb-2.5"></div>
+            <div className="h-3 w-32 bg-gray-200 rounded"></div>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -70,14 +73,15 @@ const AnalyticsDashboard = () => {
   const totalClicks = links.reduce((total, link) => total + link.clicks, 0);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <DashboardHeader />
-      
-      <main className="flex-grow container mx-auto py-8 px-4">
-        <h2 className="text-2xl font-bold mb-8">Analytics Dashboard</h2>
+    <DashboardLayout>
+      <main className="container mx-auto py-8 px-4">
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Analytics Overview</h2>
+          <p className="text-muted-foreground">Track your page performance and link engagement</p>
+        </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Visits</CardTitle>
             </CardHeader>
@@ -86,7 +90,7 @@ const AnalyticsDashboard = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Clicks</CardTitle>
             </CardHeader>
@@ -95,7 +99,7 @@ const AnalyticsDashboard = () => {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Click-Through Rate</CardTitle>
             </CardHeader>
@@ -110,11 +114,15 @@ const AnalyticsDashboard = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <VisitsChart analytics={analytics} />
-          <LinkClicksTable links={links} />
+          <Card className="shadow-sm p-2">
+            <VisitsChart analytics={analytics} />
+          </Card>
+          <Card className="shadow-sm p-2">
+            <LinkClicksTable links={links} />
+          </Card>
         </div>
       </main>
-    </div>
+    </DashboardLayout>
   );
 };
 
