@@ -14,8 +14,9 @@ import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import DashboardWelcome from '@/components/dashboard/DashboardWelcome';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -27,6 +28,7 @@ const Dashboard = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [initialProfile, setInitialProfile] = useState<Profile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const {
     links,
@@ -130,12 +132,16 @@ const Dashboard = () => {
       setProfile(profileData);
     } catch (error) {
       console.error('Error fetching user data:', error);
-      setProfileError('Failed to load your profile settings');
-      toast({
-        title: 'Error',
-        description: 'Failed to load your profile settings',
-        variant: 'destructive',
-      });
+      if (error instanceof Error && error.message.includes('Failed to fetch')) {
+        setProfileError('Network connection issue. Unable to load your profile settings.');
+      } else {
+        setProfileError('Failed to load your profile settings');
+        toast({
+          title: 'Error',
+          description: 'Failed to load your profile settings',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoadingProfile(false);
     }
@@ -148,6 +154,14 @@ const Dashboard = () => {
       fetchLinks();
     }
   }, [user, fetchUserData, fetchLinks]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    Promise.all([fetchUserData(), fetchLinks()])
+      .finally(() => {
+        setIsRefreshing(false);
+      });
+  };
 
   const handleAddLink = async (data: { title: string; url: string }) => {
     if (user) {
@@ -196,9 +210,29 @@ const Dashboard = () => {
         />
         
         {profileError && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <AlertDescription>{profileError}</AlertDescription>
+          <Alert 
+            variant={profileError.includes('Network') ? "warning" : "destructive"} 
+            className="mb-4"
+          >
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle>{profileError.includes('Network') ? "Connection Issue" : "Error"}</AlertTitle>
+            <AlertDescription className="mt-2">
+              {profileError}
+              {profileError.includes('Network') && (
+                <div className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="flex items-center"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    {isRefreshing ? 'Refreshing...' : 'Retry Now'}
+                  </Button>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
         
@@ -215,19 +249,20 @@ const Dashboard = () => {
           <TabsContent value="links" className="mt-4 animate-fade-in">
             <LinksTab 
               links={links}
-              isLoading={linksLoading}
+              isLoading={linksLoading || isRefreshing}
               error={linksError}
               onAdd={handleAddLink}
               onUpdate={handleUpdateLink}
               onDelete={handleDeleteLink}
               onReorder={handleReorderLinks}
+              onRefresh={handleRefresh}
             />
           </TabsContent>
           
           <TabsContent value="appearance" className="mt-4 animate-fade-in">
             <AppearanceTab 
               profile={profile}
-              isUpdating={isUpdating || isLoadingProfile}
+              isUpdating={isUpdating || isLoadingProfile || isRefreshing}
               themeColor={themeColor}
               onThemeChange={updateTheme}
               onButtonStyleChange={updateButtonStyle}

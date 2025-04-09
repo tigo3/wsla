@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from '@/types';
 import { 
@@ -26,16 +26,39 @@ export function useLinkData(userId: string | undefined) {
       setLinks(fetchedLinks);
     } catch (error) {
       console.error('Error fetching links:', error);
-      setError('Failed to load links. Please try again.');
-      toast({
-        title: 'Error',
-        description: 'Failed to load links. Please try again.',
-        variant: 'destructive',
-      });
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to load links. Please try again.';
+      
+      setError('Network connection issue. Unable to fetch your links at this time.');
+      
+      // Only show toast for non-network errors as network errors are displayed in the UI
+      if (!errorMessage.includes('Failed to fetch')) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load links. Please try again.',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Retry mechanism for network errors
+  useEffect(() => {
+    let retryTimeout: NodeJS.Timeout;
+    
+    if (error && error.includes('Network connection')) {
+      retryTimeout = setTimeout(() => {
+        fetchLinks();
+      }, 5000); // Retry after 5 seconds
+    }
+    
+    return () => {
+      if (retryTimeout) clearTimeout(retryTimeout);
+    };
+  }, [error]);
 
   const addLink = async (title: string, url: string) => {
     if (!userId) return null;

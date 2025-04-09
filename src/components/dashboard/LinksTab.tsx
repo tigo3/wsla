@@ -6,8 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import LinkCard from '@/components/dashboard/LinkCard';
 import LinkForm from '@/components/dashboard/LinkForm';
 import { Link } from '@/types';
-import { Plus, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Plus, AlertCircle, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface LinksTabProps {
   links: Link[];
@@ -17,6 +17,7 @@ interface LinksTabProps {
   onUpdate: (linkId: string, data: { title: string; url: string }) => Promise<boolean | void>;
   onDelete: (linkId: string) => Promise<boolean | void>;
   onReorder?: (links: Link[]) => Promise<boolean | void>;
+  onRefresh?: () => void;
 }
 
 const LinksTab: React.FC<LinksTabProps> = ({
@@ -26,7 +27,8 @@ const LinksTab: React.FC<LinksTabProps> = ({
   onAdd,
   onUpdate,
   onDelete,
-  onReorder
+  onReorder,
+  onRefresh
 }) => {
   const [isAddLinkDialogOpen, setIsAddLinkDialogOpen] = useState(false);
 
@@ -77,21 +79,56 @@ const LinksTab: React.FC<LinksTabProps> = ({
           </Button>
         </div>
         
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4 mr-2" />
-          <AlertDescription>
-            There was an error loading your links. Please try again later.
+        <Alert variant={error.includes('Network') ? "warning" : "destructive"} className="mb-4">
+          <AlertCircle className="h-5 w-5" />
+          <AlertTitle>{error.includes('Network') ? "Connection Issue" : "Error"}</AlertTitle>
+          <AlertDescription className="mt-2">
+            {error}
+            {error.includes('Network') && onRefresh && (
+              <div className="mt-3">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={onRefresh}
+                  className="flex items-center"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Retry Now
+                </Button>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
         
-        <div className="text-center py-12 bg-white dark:bg-card rounded-lg border">
-          <h3 className="text-lg font-medium mb-2">Unable to load links</h3>
-          <p className="text-muted-foreground mb-4">Try refreshing the page or add a new link</p>
-          <Button onClick={() => setIsAddLinkDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add Link
-          </Button>
-        </div>
+        {links.length > 0 ? (
+          <div>
+            {links.map((link) => (
+              <LinkCard
+                key={link.id}
+                link={link}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white dark:bg-card rounded-lg border">
+            <h3 className="text-lg font-medium mb-2">No links available</h3>
+            <p className="text-muted-foreground mb-4">Add your first link or try refreshing</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => setIsAddLinkDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-1" />
+                Add Link
+              </Button>
+              {onRefresh && (
+                <Button variant="outline" onClick={onRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -116,7 +153,7 @@ const LinksTab: React.FC<LinksTabProps> = ({
           </Button>
         </div>
       ) : (
-        <div>
+        <div className="space-y-4">
           {links.map((link) => (
             <LinkCard
               key={link.id}
