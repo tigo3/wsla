@@ -14,6 +14,8 @@ import { useProfileSettings } from '@/hooks/useProfileSettings';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import DashboardWelcome from '@/components/dashboard/DashboardWelcome';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -24,10 +26,12 @@ const Dashboard = () => {
   const [themeColor, setThemeColor] = useState('#9b87f5'); // Default color
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [initialProfile, setInitialProfile] = useState<Profile | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
   
   const {
     links,
     isLoading: linksLoading,
+    error: linksError,
     fetchLinks,
     addLink,
     updateLink,
@@ -72,6 +76,7 @@ const Dashboard = () => {
   const fetchUserData = useCallback(async () => {
     if (!user) return;
     setIsLoadingProfile(true);
+    setProfileError(null);
 
     try {
       // First try to get the profile using the username
@@ -125,6 +130,7 @@ const Dashboard = () => {
       setProfile(profileData);
     } catch (error) {
       console.error('Error fetching user data:', error);
+      setProfileError('Failed to load your profile settings');
       toast({
         title: 'Error',
         description: 'Failed to load your profile settings',
@@ -170,11 +176,11 @@ const Dashboard = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-pulse flex flex-col items-center">
-          <div className="h-12 w-12 rounded-full bg-gray-200 mb-4"></div>
-          <div className="h-4 w-48 bg-gray-200 rounded mb-2.5"></div>
-          <div className="h-3 w-32 bg-gray-200 rounded"></div>
+          <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-700 mb-4"></div>
+          <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-2.5"></div>
+          <div className="h-3 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
         </div>
       </div>
     );
@@ -188,6 +194,13 @@ const Dashboard = () => {
           linkCount={links.length} 
           totalClicks={totalClicks} 
         />
+        
+        {profileError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <AlertDescription>{profileError}</AlertDescription>
+          </Alert>
+        )}
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6">
@@ -203,6 +216,7 @@ const Dashboard = () => {
             <LinksTab 
               links={links}
               isLoading={linksLoading}
+              error={linksError}
               onAdd={handleAddLink}
               onUpdate={handleUpdateLink}
               onDelete={handleDeleteLink}

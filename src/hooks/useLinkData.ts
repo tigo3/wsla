@@ -13,17 +13,20 @@ import {
 export function useLinkData(userId: string | undefined) {
   const [links, setLinks] = useState<Link[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchLinks = async () => {
     if (!userId) return;
     
     setIsLoading(true);
+    setError(null);
     try {
       const fetchedLinks = await getUserLinks(userId);
       setLinks(fetchedLinks);
     } catch (error) {
       console.error('Error fetching links:', error);
+      setError('Failed to load links. Please try again.');
       toast({
         title: 'Error',
         description: 'Failed to load links. Please try again.',
@@ -145,6 +148,7 @@ export function useLinkData(userId: string | undefined) {
   return {
     links,
     isLoading,
+    error,
     fetchLinks,
     addLink,
     updateLink: updateLinkData,
