@@ -21,7 +21,7 @@
     --secondary-foreground: 20 20 20;
 
     --muted: 245 245 250;
-    --muted-foreground: 100 100 110;
+    --muted-foreground: 80 80 90;
 
     --accent: 248 248 252;
     --accent-foreground: 20 20 20;
@@ -112,5 +112,9 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 }
